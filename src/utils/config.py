@@ -13,4 +13,9 @@ class Config:
     exp_name: str = "experiment"
     track: bool = False # Track with wandb or similar if needed
 
+    # Trainer specific params
+    num_episodes: int = 1000  # Number of episodes to train
+    max_episode_steps: int = 1000  # Max steps per episode
+    log_interval: int = 10  # Log metrics every N episodes
+    
     # Agent specific params can be added here or in subclasses

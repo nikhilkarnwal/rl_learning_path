@@ -1,1 +1,11 @@
 *env/*
+runs/*
+*_pycache__*
+*.pyc
+*_pycache__/*
+__pycache__/
+*.pyc
+*.pyo
+*.py[cod]
+.python-version*
+

@@ -11,43 +11,29 @@ import numpy as np
 import argparse
 from src.utils.config import Config
 from src.utils.logger import Logger
-# Import agents here as implemented
-# from src.agents.pg import PolicyGradientAgent
+from src.agents.pg import PolicyGradientAgent
+from src.trainers.pg_trainer import PolicyGradientTrainer
 
 def train(config: Config):
     run_name = f"{config.env_id}__{config.exp_name}__{config.seed}"
     logger = Logger(config.log_dir, run_name)
 
     # Seeding
-    # random.seed(config.seed)
     np.random.seed(config.seed)
     torch.manual_seed(config.seed)
 
+    # Create environment
     env = gym.make(config.env_id)
-    # env = gym.wrappers.RecordVideo(env, f"videos/{run_name}") # Optional
 
-    # Initialize Agent (TODO: Factory or selection logic)
-    # agent = PolicyGradientAgent(env, config)
-    print("Agent not initialized yet.")
-    agent = None 
+    # Initialize Agent
+    agent = PolicyGradientAgent(env, config)
+    print(f"Initialized PolicyGradientAgent for {config.env_id}")
 
-    if agent is None:
-        print("No agent selected. Exiting.")
-        return
-
-    # Training Loop (Basic Skeleton - specific agents might override or use a runner)
-    # global_step = 0
-    # while global_step < config.total_timesteps:
-    #     obs, _ = env.reset()
-    #     done = False
-    #     while not done:
-    #         action = agent.select_action(obs)
-    #         next_obs, reward, terminated, truncated, info = env.step(action)
-    #         done = terminated or truncated
-    #         # agent.store(...)
-    #         # agent.update(...)
-    #         obs = next_obs
-    #         global_step += 1
+    # Initialize Trainer
+    trainer = PolicyGradientTrainer(env, agent, config, logger)
+    
+    # Train the agent
+    trainer.train()
     
     env.close()
     logger.close()
@@ -61,7 +47,7 @@ if __name__ == "__main__":
 
     if args.test_env:
         print(f"Testing environment {args.env_id}...")
-        env = gym.make(args.env_id)
+        env = gym.make(args.env_id, render_mode='human')
         env.reset()
         action = env.action_space.sample()
         obs, reward, terminated, truncated, info = env.step(action)
