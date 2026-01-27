@@ -100,26 +100,28 @@ class PolicyGradientTrainer:
         
         print(f"Starting training for {num_episodes} episodes...")
         
-        for episode in range(1, num_episodes + 1):
-
-            # fetch 1000 samples then update policy, apply while loop
+        # fetch 1000 samples then update policy, apply while loop
+        for episode in range(num_episodes):
             rollouts = []
             total_episode_length = 0
             total_episode_reward = 0
-            while total_episode_length < 1000:
+            while total_episode_length < getattr(self.config, 'batch_size', 1000):
                 episode_reward, episode_length, buffer = self.run_episode()
                 total_episode_length += episode_length
                 total_episode_reward += episode_reward
                 rollouts.append(buffer)
             
             # Update policy using collected experiences
-            loss = self.agent.update(rollouts)
+            # loss = self.agent.update(rollouts)
+
+            # run update_v2
+            loss = self.agent.update_v2(rollouts, gamma=0.99, use_baseline=True)
             
             # Track metrics
-            self.episode_rewards.append(total_episode_reward)
-            self.episode_lengths.append(total_episode_length)
+            self.episode_rewards.append(total_episode_reward / len(rollouts))
+            self.episode_lengths.append(total_episode_length / len(rollouts))
             self.losses.append(loss)
-            
+
             # Log metrics
             if episode % log_interval == 0:
                 self.log_metrics(episode, num_episodes)
@@ -151,12 +153,10 @@ class PolicyGradientTrainer:
         
         # Log to logger if available
         if self.logger:
-            self.logger.log({
-                'episode': episode,
-                'avg_reward': avg_reward,
-                'avg_length': avg_length,
-                'avg_loss': avg_loss
-            })
+            self.logger.log_scalar('episode', episode, episode)
+            self.logger.log_scalar('avg_reward', avg_reward, episode)
+            self.logger.log_scalar('avg_length', avg_length, episode)
+            self.logger.log_scalar('avg_loss', avg_loss, episode)
     
     def print_final_summary(self):
         """Print final training summary."""

@@ -1,5 +1,5 @@
-*env/*
-runs/*
+*env*
+*runs*
 *_pycache__*
 *.pyc
 *_pycache__/*

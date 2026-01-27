@@ -62,7 +62,6 @@ class PolicyGradientAgent(BaseAgent):
             log_probs = torch.stack(log_probs_list)
             rewards = torch.FloatTensor(rewards_list).sum()
 
-            # TODO: Implement the rest of the policy gradient update logic
             loss_val = -torch.sum(log_probs) * rewards
             loss_vals.append(loss_val)
         loss_val_tensor = torch.stack(loss_vals).mean()
@@ -71,6 +70,67 @@ class PolicyGradientAgent(BaseAgent):
         self.optimizer.step()
         
         return loss_val_tensor.item()
+
+    def update_v2(self, rollouts: List[ExperienceBuffer], gamma: float = 1.0, use_baseline: bool = True):
+        """
+        Update policy using correct REINFORCE algorithm with returns (G_t).
+        
+        Collects all log_probs and returns from all rollouts, normalizes globally
+        for better variance reduction, then updates policy.
+        
+        Args:
+            rollouts: List of experience buffers from episodes
+            gamma: Discount factor (default=1.0 for undiscounted returns)
+            use_baseline: Whether to normalize returns to reduce variance
+        
+        Returns:
+            Loss value
+        """
+        loss_val = 0
+        for epoch in range(self.config.num_epochs):
+            # Collect all log_probs and returns from all rollouts
+            all_log_probs = []
+            all_returns = []
+            baseline = 0.0
+            
+            for rollout in rollouts:
+                log_probs_list = [exp.log_prob for exp in rollout.experiences]
+                rewards_list = [exp.reward for exp in rollout.experiences]
+            
+                # Store log_probs
+                all_log_probs.extend(log_probs_list)
+                
+                # Compute returns G_t = r_t + gamma*r_{t+1} + gamma^2*r_{t+2} + ...
+                returns = []
+                G = 0
+                for r in reversed(rewards_list):
+                    G = r + gamma * G
+                    returns.insert(0, G)
+                all_returns.extend(returns)
+                baseline += sum(rewards_list)
+            
+            # Convert to tensors (flatten across all rollouts)
+            log_probs = torch.stack(all_log_probs)
+            returns = torch.FloatTensor(all_returns)
+            
+            # Normalize returns globally (baseline subtraction to reduce variance)
+            if use_baseline and len(returns) > 1:
+                baseline = returns.mean()
+                returns = (returns - baseline)
+            
+            # REINFORCE loss: -sum(log_prob_t * G_t)
+            # Each action's log_prob is weighted by its return
+            # Negative because we want to maximize return (minimize negative return)
+            loss = -torch.mean(log_probs * returns.detach())
+            
+            # Update policy
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+            
+            loss_val = loss.item()
+            print(f"Epoch {epoch}: Loss = {loss_val}")
+        return loss_val
 
     
     def save(self, path):

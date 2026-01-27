@@ -40,14 +40,19 @@ def train(config: Config):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--env-id", type=str, default="CartPole-v1")
+    parser.add_argument("--env-id", type=str)
     parser.add_argument("--exp-name", type=str, default="test")
     parser.add_argument("--test-env", action="store_true", help="Just test env setup")
     args = parser.parse_args()
 
+    if args.env_id is None:
+        env_id = None
+    else:
+        env_id = args.env_id
+
     if args.test_env:
-        print(f"Testing environment {args.env_id}...")
-        env = gym.make(args.env_id, render_mode='human')
+        print(f"Testing environment {env_id}...")
+        env = gym.make(env_id, render_mode='human')
         env.reset()
         action = env.action_space.sample()
         obs, reward, terminated, truncated, info = env.step(action)
@@ -55,8 +60,13 @@ if __name__ == "__main__":
         print(f"Obs: {obs.shape}, Reward: {reward}")
         env.close()
     else:
-        config = Config(
-            env_id=args.env_id,
-            exp_name=args.exp_name
-        )
+        if env_id is None:
+            config = Config(
+                exp_name=args.exp_name
+            )
+        else:
+            config = Config(
+                env_id=env_id,
+                exp_name=args.exp_name
+            )
         train(config)
