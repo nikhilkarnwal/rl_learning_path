@@ -9,3 +9,14 @@ __pycache__/
 *.py[cod]
 .python-version*
 
+# Notebooks
+.ipynb_checkpoints/
+
+# Data & results (keep only small eval sets + summary json)
+data/raw/
+data/processed/
+results/**/large*
+*.parquet
+
+# OS
+.DS_Store
